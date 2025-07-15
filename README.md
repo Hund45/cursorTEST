@@ -3,10 +3,19 @@
 ## Overview
 This collection contains two incredible shaders that will blow your mind:
 
-1. **Tesseract 4D Shader** (`tesseract_4d.glsl`) - A genuine 4-dimensional hypercube rotating through 4D space
-2. **Mandelbulb Fractal Shader** (`mandelbulb_fractal.glsl`) - A 3D fractal with infinite detail and trippy effects
+1. **Tesseract 4D Shader** (`tesseract_4d_touchdesigner.glsl`) - A genuine 4-dimensional hypercube rotating through 4D space
+2. **Mandelbulb Fractal Shader** (`mandelbulb_touchdesigner.glsl`) - A 3D fractal with infinite detail and trippy effects
 
-## Setup Instructions for TouchDesigner
+**✅ These are now properly formatted for TouchDesigner!** They use the correct TouchDesigner GLSL syntax with `uTime`, `uTD2DInfos`, `iVert`, and `TDOutputSwizzle()`.
+
+## Quick Start (TL;DR)
+
+1. **Add a GLSL TOP** in TouchDesigner
+2. **Load shader**: Set Pixel Shader to File → browse to `.glsl` file
+3. **Add uniforms**: Go to Uniforms page → click `+` → add the custom uniforms listed below
+4. **Watch your mind get blown!** 🤯
+
+## Detailed Setup Instructions
 
 ### 1. Tesseract 4D Shader Setup
 
@@ -17,29 +26,20 @@ This collection contains two incredible shaders that will blow your mind:
 2. **Load the Shader**:
    - In the GLSL TOP parameters, go to the `GLSL` tab
    - Set `Pixel Shader` to `File`
-   - Browse and select `tesseract_4d.glsl`
+   - Browse and select `tesseract_4d_touchdesigner.glsl`
 
-3. **Set up Uniforms** (Parameters page):
-   - `time` → Connect to an `absTime.seconds` expression or use `me.time.seconds`
-   - `resolution` → Connect to the TOP's resolution (`me.width`, `me.height`)
-   - `uRotationSpeed` → Add a constant (try 0.5-2.0 for good effects)
-   - `uSize` → Controls tesseract size (try 1.0-3.0)
-   - `uGlow` → Controls glow intensity (try 2.0-5.0)
-   - `uColor1` → RGB color (try 1.0, 0.2, 0.5)
-   - `uColor2` → RGB color (try 0.2, 0.8, 1.0)  
-   - `uColor3` → RGB color (try 0.8, 1.0, 0.2)
+3. **Set up Custom Uniforms** (Uniforms page):
+   - Click the `+` button to add custom uniforms:
+   - `uRotationSpeed` → Type: `float`, Value: `1.0` (controls rotation speed)
+   - `uSize` → Type: `float`, Value: `2.0` (controls tesseract size)
+   - `uGlow` → Type: `float`, Value: `3.0` (controls glow intensity)
+   - `uColor1` → Type: `vec3`, Value: `1.0, 0.2, 0.5` (first color)
+   - `uColor2` → Type: `vec3`, Value: `0.2, 0.8, 1.0` (second color)
+   - `uColor3` → Type: `vec3`, Value: `0.8, 1.0, 0.2` (third color)
 
-4. **Uniform Setup Example**:
-   ```
-   time: absTime.seconds
-   resolution: [me.width, me.height]
-   uRotationSpeed: 1.0
-   uSize: 2.0
-   uGlow: 3.0
-   uColor1: [1.0, 0.2, 0.5]
-   uColor2: [0.2, 0.8, 1.0]
-   uColor3: [0.8, 1.0, 0.2]
-   ```
+4. **Built-in TouchDesigner Variables** (automatically provided):
+   - `uTime` → Automatically connected to TouchDesigner's time
+   - `uTD2DInfos[0]` → Automatically provides resolution info
 
 ### 2. Mandelbulb Fractal Shader Setup
 
@@ -49,15 +49,14 @@ This collection contains two incredible shaders that will blow your mind:
 
 2. **Load the Shader**:
    - Set `Pixel Shader` to `File`
-   - Browse and select `mandelbulb_fractal.glsl`
+   - Browse and select `mandelbulb_touchdesigner.glsl`
 
-3. **Set up Uniforms**:
-   - `time` → `absTime.seconds`
-   - `resolution` → `[me.width, me.height]`
-   - `uPower` → Fractal power (try 6.0-12.0)
-   - `uZoom` → Camera zoom (try 0.5-2.0)
-   - `uSpeed` → Animation speed (try 0.3-1.0)
-   - `uColorShift` → Color cycling speed (try 1.0-3.0)
+3. **Set up Custom Uniforms** (Uniforms page):
+   - Click the `+` button to add custom uniforms:
+   - `uPower` → Type: `float`, Value: `8.0` (fractal power, try 6.0-12.0)
+   - `uZoom` → Type: `float`, Value: `1.0` (camera zoom, try 0.5-2.0)
+   - `uSpeed` → Type: `float`, Value: `0.5` (animation speed, try 0.3-1.0)
+   - `uColorShift` → Type: `float`, Value: `1.5` (color cycling speed, try 1.0-3.0)
 
 ## Controls & Customization
 
@@ -68,10 +67,11 @@ This collection contains two incredible shaders that will blow your mind:
 - **uColor1/2/3**: RGB values for the three main colors used
 
 ### Interactive Ideas:
-- Connect `uRotationSpeed` to audio analysis for music reactivity
-- Use MIDI controllers to adjust `uGlow` and colors in real-time
-- Connect `uSize` to a LFO for pulsing effects
-- Use touch input to control rotation speeds
+- **Audio Reactive**: Connect uniform values to `Audio Device In CHOP` → `Audio Analysis CHOP`
+- **MIDI Control**: Use `MIDI In CHOP` to control `uGlow`, colors, and rotation speed
+- **LFO Effects**: Connect `LFO CHOP` to `uSize` for pulsing tesseract
+- **Mouse/Touch**: Use `Mouse In CHOP` or `Touch In TOP` to control parameters
+- **OSC Control**: Use `OSC In CHOP` for external control from phones/tablets
 
 ### Mandelbulb Controls:
 - **uPower**: Changes the fractal formula (higher = more complex)

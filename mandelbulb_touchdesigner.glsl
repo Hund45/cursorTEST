@@ -1,9 +1,18 @@
-// Mandelbulb 3D Fractal Shader for TouchDesigner
+// TouchDesigner Mandelbulb 3D Fractal Shader
 // A mind-blowing journey through infinite fractal dimensions
-// By AI Assistant
+// Pixel Shader
 
-uniform float time;
-uniform vec2 resolution;
+// TouchDesigner provides these automatically
+uniform float uTime;
+uniform vec3 uTD2DInfos[1];
+in Vertex {
+    vec4 color;
+    vec3 worldSpacePos;
+    vec3 texCoord0;
+    flat int cameraIndex;
+} iVert;
+
+// Custom uniforms - add these in the Uniform page
 uniform float uPower;
 uniform float uZoom;
 uniform float uSpeed;
@@ -12,7 +21,7 @@ uniform float uColorShift;
 out vec4 fragColor;
 
 // Maximum ray marching iterations
-#define MAX_STEPS 128
+#define MAX_STEPS 96
 #define MAX_DIST 100.0
 #define SURF_DIST 0.001
 
@@ -22,7 +31,7 @@ float mandelbulb(vec3 pos, float power) {
     float dr = 1.0;
     float r = 0.0;
     
-    for(int i = 0; i < 15; i++) {
+    for(int i = 0; i < 12; i++) {
         r = length(z);
         if(r > 2.0) break;
         
@@ -51,7 +60,7 @@ float mandelbulb(vec3 pos, float power) {
 // Scene distance function with multiple fractals and transformations
 float sceneSDF(vec3 p) {
     // Apply time-based transformations
-    float t = time * uSpeed;
+    float t = uTime * uSpeed;
     
     // Create multiple fractal instances with different transformations
     vec3 p1 = p;
@@ -190,10 +199,13 @@ vec3 applyFog(vec3 color, float dist, vec3 rayDir) {
 }
 
 void main() {
-    vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / resolution.y;
+    // Get UV coordinates from TouchDesigner
+    vec2 uv = iVert.texCoord0.st;
+    vec2 resolution = uTD2DInfos[0].xy;
+    uv = (uv * resolution - 0.5 * resolution) / resolution.y;
     
     // Camera setup with smooth movement
-    float t = time * uSpeed;
+    float t = uTime * uSpeed;
     vec3 ro = vec3(
         6.0 * cos(t * 0.3) * uZoom,
         4.0 * sin(t * 0.5) * uZoom,
@@ -258,5 +270,5 @@ void main() {
     color.r = mix(color.r, pow(color.r, 1.1), aberration);
     color.b = mix(color.b, pow(color.b, 0.9), aberration);
     
-    fragColor = vec4(color, 1.0);
+    fragColor = TDOutputSwizzle(vec4(color, 1.0));
 }
