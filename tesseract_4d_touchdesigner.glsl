@@ -1,16 +1,12 @@
 // TouchDesigner Tesseract 4D Shader
 // A mind-blowing 4-dimensional hypercube visualization
-// Pixel Shader
 
 // TouchDesigner provides these automatically
 uniform float uTime;
 uniform vec3 uTD2DInfos[1];
-in Vertex {
-    vec4 color;
-    vec3 worldSpacePos;
-    vec3 texCoord0;
-    flat int cameraIndex;
-} iVert;
+
+// Standard TouchDesigner inputs
+in vec2 vUV;
 
 // Custom uniforms - add these in the Uniform page
 uniform float uRotationSpeed;
@@ -109,7 +105,7 @@ float noise(vec3 p) {
 
 void main() {
     // Get UV coordinates from TouchDesigner
-    vec2 uv = iVert.texCoord0.st;
+    vec2 uv = vUV.st;
     vec2 resolution = uTD2DInfos[0].xy;
     uv = (uv * resolution - 0.5 * resolution) / resolution.y;
     
@@ -258,5 +254,5 @@ void main() {
     // Gamma correction
     finalColor = pow(finalColor, vec3(0.4545));
     
-    fragColor = TDOutputSwizzle(vec4(finalColor, 1.0));
+    fragColor = vec4(finalColor, 1.0);
 }

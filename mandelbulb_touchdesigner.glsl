@@ -1,16 +1,12 @@
 // TouchDesigner Mandelbulb 3D Fractal Shader
 // A mind-blowing journey through infinite fractal dimensions
-// Pixel Shader
 
 // TouchDesigner provides these automatically
 uniform float uTime;
 uniform vec3 uTD2DInfos[1];
-in Vertex {
-    vec4 color;
-    vec3 worldSpacePos;
-    vec3 texCoord0;
-    flat int cameraIndex;
-} iVert;
+
+// Standard TouchDesigner inputs
+in vec2 vUV;
 
 // Custom uniforms - add these in the Uniform page
 uniform float uPower;
@@ -200,7 +196,7 @@ vec3 applyFog(vec3 color, float dist, vec3 rayDir) {
 
 void main() {
     // Get UV coordinates from TouchDesigner
-    vec2 uv = iVert.texCoord0.st;
+    vec2 uv = vUV.st;
     vec2 resolution = uTD2DInfos[0].xy;
     uv = (uv * resolution - 0.5 * resolution) / resolution.y;
     
@@ -270,5 +266,5 @@ void main() {
     color.r = mix(color.r, pow(color.r, 1.1), aberration);
     color.b = mix(color.b, pow(color.b, 0.9), aberration);
     
-    fragColor = TDOutputSwizzle(vec4(color, 1.0));
+    fragColor = vec4(color, 1.0);
 }
