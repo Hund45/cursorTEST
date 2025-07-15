@@ -3,7 +3,7 @@
 
 uniform float uTime;
 uniform vec3 uTD2DInfos[1];
-in vec2 vUV;
+in vec3 vUV;
 
 uniform float uRotationSpeed;
 uniform float uSize;
@@ -74,7 +74,7 @@ void getTesseractVertices(out vec4 vertices[16]) {
 }
 
 void main() {
-    vec2 uv = vUV;
+    vec2 uv = vUV.xy;
     vec2 resolution = uTD2DInfos[0].xy;
     uv = (uv * resolution - 0.5 * resolution) / resolution.y;
     

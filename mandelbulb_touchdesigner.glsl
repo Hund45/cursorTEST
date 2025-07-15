@@ -6,7 +6,7 @@ uniform float uTime;
 uniform vec3 uTD2DInfos[1];
 
 // Standard TouchDesigner inputs
-in vec2 vUV;
+in vec3 vUV;
 
 // Custom uniforms - add these in the Uniform page
 uniform float uPower;
@@ -196,7 +196,7 @@ vec3 applyFog(vec3 color, float dist, vec3 rayDir) {
 
 void main() {
     // Get UV coordinates from TouchDesigner
-    vec2 uv = vUV.st;
+    vec2 uv = vUV.xy;
     vec2 resolution = uTD2DInfos[0].xy;
     uv = (uv * resolution - 0.5 * resolution) / resolution.y;
     
