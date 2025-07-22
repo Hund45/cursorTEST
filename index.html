@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Sound Reactive Shader - Crystal Waves</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #controls button {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        
+        #controls button:hover {
+            transform: scale(1.05);
+        }
+        
+        #controls button:disabled {
+            background: #333;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <h3>🎵 Crystal Waves Audio Visualizer</h3>
+            <button id="startBtn">Start Audio</button>
+            <button id="demoBtn">Demo Audio</button>
+            <button id="micBtn">Use Microphone</button>
+            <button id="fileBtn">Load Audio File</button>
+            <input type="file" id="audioFile" accept="audio/*" style="display: none;">
+            <br>
+            <label>Sensitivity: <input type="range" id="sensitivity" min="0.1" max="3" value="1" step="0.1"></label>
+            <br>
+            <label>Complexity: <input type="range" id="complexity" min="1" max="5" value="3" step="1"></label>
+        </div>
+        
+        <div id="info">
+            <div>FPS: <span id="fps">0</span></div>
+            <div>Audio Level: <span id="audioLevel">0</span></div>
+        </div>
+        
+        <div class="loading" id="loading">Loading Crystal Waves...</div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="demo-audio.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
