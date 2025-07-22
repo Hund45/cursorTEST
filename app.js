@@ -49,6 +49,7 @@ class CrystalWavesVisualizer {
         
         this.createCrystalShader();
         this.createParticleSystem();
+        this.createBackgroundShader();
         this.createLighting();
         
         // Hide loading
@@ -74,7 +75,9 @@ class CrystalWavesVisualizer {
                 // Calculate audio influence based on position
                 float freqIndex = mod(position.y * 5.0 + 16.0, 32.0);
                 float freq = frequencies[int(freqIndex)] / 255.0;
-                vAudioInfluence = freq;
+                // Add base movement even without audio
+                float baseMovement = sin(time * 2.0 + position.x * 0.1) * 0.3 + 0.3;
+                vAudioInfluence = max(freq, baseMovement);
                 
                 // Displace vertices based on audio
                 vec3 displaced = position;
@@ -96,24 +99,79 @@ class CrystalWavesVisualizer {
             varying vec3 vNormal;
             varying float vAudioInfluence;
             
+            // Fractal function for complex patterns
+            vec2 complexSquare(vec2 z) {
+                return vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
+            }
+            
+            float mandelbrot(vec2 c) {
+                vec2 z = vec2(0.0);
+                for(int i = 0; i < 50; i++) {
+                    if(length(z) > 2.0) return float(i) / 50.0;
+                    z = complexSquare(z) + c;
+                }
+                return 0.0;
+            }
+            
+            // HSV to RGB conversion
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+            
             void main() {
-                // Dynamic color based on audio and position
-                vec3 color1 = vec3(0.1, 0.3, 1.0); // Blue
-                vec3 color2 = vec3(1.0, 0.2, 0.5); // Pink
-                vec3 color3 = vec3(0.2, 1.0, 0.3); // Green
+                vec2 uv = (vPosition.xy + vPosition.z * 0.1) * 0.3;
+                float t = time * 0.5;
                 
-                // Mix colors based on audio influence and position
-                vec3 finalColor = mix(color1, color2, vAudioInfluence);
-                finalColor = mix(finalColor, color3, sin(time + vPosition.y) * 0.5 + 0.5);
+                // Create fractal pattern
+                vec2 fractalUV = uv + vec2(sin(t * 0.3), cos(t * 0.2)) * 0.1;
+                float fractal = mandelbrot(fractalUV);
                 
-                // Add brightness based on audio level
-                finalColor *= (1.0 + audioLevel * 2.0);
+                // Create wave patterns
+                float wave1 = sin(uv.x * 10.0 + t * 2.0) * cos(uv.y * 8.0 + t * 1.5);
+                float wave2 = sin(uv.x * 6.0 - t * 1.8) * sin(uv.y * 12.0 + t * 2.2);
+                float waves = (wave1 + wave2) * 0.5;
                 
-                // Add fresnel effect
-                float fresnel = pow(1.0 - dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)), 2.0);
-                finalColor += fresnel * 0.5;
+                // Create glitch effect
+                float glitch = step(0.98, sin(uv.x * 50.0 + t * 10.0)) * step(0.95, cos(uv.y * 30.0 + t * 8.0));
                 
-                gl_FragColor = vec4(finalColor, 0.8 + vAudioInfluence * 0.2);
+                // Base color cycling through the spectrum
+                float hue = fract(time * 0.1 + fractal * 2.0 + vAudioInfluence);
+                vec3 baseColor = hsv2rgb(vec3(hue, 0.8, 0.9));
+                
+                // Layer different effects
+                vec3 fractalColor = hsv2rgb(vec3(fractal + t * 0.2, 0.7, 1.0));
+                vec3 waveColor = hsv2rgb(vec3(waves * 0.5 + 0.5 + t * 0.15, 0.9, 0.8));
+                
+                // Mix colors based on audio and patterns
+                vec3 finalColor = mix(baseColor, fractalColor, fractal * 0.7);
+                finalColor = mix(finalColor, waveColor, abs(waves) * 0.6);
+                
+                // Add glitch flash
+                finalColor += glitch * vec3(1.0, 0.2, 0.8) * 2.0;
+                
+                // Audio reactivity - even without audio, vAudioInfluence defaults will create movement
+                float audioBoost = 1.0 + vAudioInfluence * 3.0 + audioLevel * 2.0;
+                finalColor *= audioBoost;
+                
+                // Add brightness pulsing
+                float pulse = sin(t * 3.0) * 0.3 + 0.7;
+                finalColor *= pulse;
+                
+                // Create edge glow effect
+                float fresnel = pow(1.0 - abs(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0))), 2.0);
+                vec3 glowColor = hsv2rgb(vec3(t * 0.3, 1.0, 1.0));
+                finalColor += fresnel * glowColor * 0.5;
+                
+                // Add some noise for texture
+                float noise = fract(sin(dot(uv + t, vec2(12.9898, 78.233))) * 43758.5453);
+                finalColor += noise * 0.1;
+                
+                // Ensure we always have bright, colorful output
+                finalColor = max(finalColor, vec3(0.1, 0.05, 0.2));
+                
+                gl_FragColor = vec4(finalColor, 0.9);
             }
         `;
         
@@ -170,25 +228,54 @@ class CrystalWavesVisualizer {
                 attribute float size;
                 attribute vec3 color;
                 varying vec3 vColor;
+                varying float vLifetime;
                 uniform float time;
                 uniform float audioLevel;
                 
                 void main() {
-                    vColor = color;
-                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    // Animate color through HSV space
+                    float hue = fract(time * 0.1 + color.r + position.y * 0.1);
+                    vColor = vec3(
+                        abs(sin(hue * 6.28 + 0.0)) * 0.5 + 0.5,
+                        abs(sin(hue * 6.28 + 2.09)) * 0.5 + 0.5,
+                        abs(sin(hue * 6.28 + 4.19)) * 0.5 + 0.5
+                    );
+                    
+                    // Add some movement to particles
+                    vec3 animatedPosition = position;
+                    animatedPosition.x += sin(time + position.y * 0.01) * 2.0;
+                    animatedPosition.y += cos(time * 0.8 + position.x * 0.01) * 1.5;
+                    animatedPosition.z += sin(time * 0.6 + position.z * 0.01) * 1.0;
+                    
+                    vLifetime = sin(time * 2.0 + position.x * 0.1) * 0.5 + 0.5;
+                    
+                    vec4 mvPosition = modelViewMatrix * vec4(animatedPosition, 1.0);
                     gl_Position = projectionMatrix * mvPosition;
-                    gl_PointSize = size * (1.0 + audioLevel * 3.0) * (300.0 / -mvPosition.z);
+                    
+                    float sizeMultiplier = 1.0 + audioLevel * 5.0 + sin(time * 3.0) * 0.5;
+                    gl_PointSize = size * sizeMultiplier * (300.0 / -mvPosition.z);
                 }
             `,
             fragmentShader: `
                 varying vec3 vColor;
+                varying float vLifetime;
+                uniform float time;
                 
                 void main() {
-                    float distance = length(gl_PointCoord - vec2(0.5));
+                    vec2 center = gl_PointCoord - vec2(0.5);
+                    float distance = length(center);
                     if (distance > 0.5) discard;
                     
-                    float alpha = 1.0 - distance * 2.0;
-                    gl_FragColor = vec4(vColor, alpha);
+                    // Create star-like pattern
+                    float angle = atan(center.y, center.x);
+                    float star = sin(angle * 6.0 + time * 2.0) * 0.2 + 0.8;
+                    
+                    float alpha = (1.0 - distance * 2.0) * star * vLifetime;
+                    
+                    // Add pulsing effect
+                    float pulse = sin(time * 4.0) * 0.3 + 0.7;
+                    
+                    gl_FragColor = vec4(vColor * pulse, alpha);
                 }
             `,
             uniforms: {
@@ -201,6 +288,91 @@ class CrystalWavesVisualizer {
         
         this.particleSystem = new THREE.Points(particleGeometry, particleMaterial);
         this.scene.add(this.particleSystem);
+    }
+    
+    createBackgroundShader() {
+        const backgroundGeometry = new THREE.PlaneGeometry(200, 200);
+        
+        const backgroundMaterial = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec2 vUv;
+                
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform float audioLevel;
+                varying vec2 vUv;
+                
+                // Noise function
+                float noise(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+                }
+                
+                void main() {
+                    vec2 uv = vUv * 2.0 - 1.0;
+                    float t = time * 0.3;
+                    
+                    // Create flowing plasma effect
+                    float plasma = sin(uv.x * 3.0 + t) + 
+                                  sin(uv.y * 4.0 + t * 1.2) + 
+                                  sin((uv.x + uv.y) * 2.0 + t * 0.8) +
+                                  sin(length(uv) * 5.0 + t * 2.0);
+                    
+                    // Add turbulence
+                    vec2 turbulence = vec2(
+                        sin(uv.x * 6.0 + t * 0.7) * cos(uv.y * 5.0 + t * 0.9),
+                        cos(uv.x * 5.0 + t * 0.8) * sin(uv.y * 6.0 + t * 1.1)
+                    ) * 0.3;
+                    
+                    plasma += sin(length(uv + turbulence) * 8.0 + t * 1.5) * 0.5;
+                    
+                    // Color mapping
+                    vec3 color1 = vec3(0.5, 0.0, 1.0); // Purple
+                    vec3 color2 = vec3(0.0, 1.0, 0.5); // Cyan
+                    vec3 color3 = vec3(1.0, 0.3, 0.0); // Orange
+                    vec3 color4 = vec3(1.0, 0.0, 0.8); // Pink
+                    
+                    float normalizedPlasma = (plasma + 4.0) / 8.0;
+                    
+                    vec3 finalColor;
+                    if (normalizedPlasma < 0.33) {
+                        finalColor = mix(color1, color2, normalizedPlasma * 3.0);
+                    } else if (normalizedPlasma < 0.66) {
+                        finalColor = mix(color2, color3, (normalizedPlasma - 0.33) * 3.0);
+                    } else {
+                        finalColor = mix(color3, color4, (normalizedPlasma - 0.66) * 3.0);
+                    }
+                    
+                    // Add audio reactivity
+                    finalColor *= (0.3 + audioLevel * 0.7);
+                    
+                    // Add some sparkle
+                    float sparkle = noise(uv * 50.0 + t * 10.0);
+                    if (sparkle > 0.98) {
+                        finalColor += vec3(1.0) * 0.5;
+                    }
+                    
+                    gl_FragColor = vec4(finalColor, 0.3);
+                }
+            `,
+            uniforms: {
+                time: { value: 0.0 },
+                audioLevel: { value: 0.5 } // Default to some activity
+            },
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        
+        this.backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+        this.backgroundMesh.position.z = -50;
+        this.scene.add(this.backgroundMesh);
+        
+        // Store reference to material for updates
+        this.backgroundMaterial = backgroundMaterial;
     }
     
     createLighting() {
@@ -332,6 +504,11 @@ class CrystalWavesVisualizer {
         
         if (this.particleSystem && this.particleSystem.material) {
             this.particleSystem.material.uniforms.time.value = currentTime;
+        }
+        
+        if (this.backgroundMaterial) {
+            this.backgroundMaterial.uniforms.time.value = currentTime;
+            this.backgroundMaterial.uniforms.audioLevel.value = audioLevel || 0.5;
         }
         
         // Animate crystal rotation
